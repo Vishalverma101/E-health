@@ -1,11 +1,17 @@
-
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { AppContext } from '../context/AppContext';
 
 const Searchbar = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedRegion, setSelectedRegion] = useState('Bhopal');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredDoctors, setFilteredDoctors] = useState([]);
 
-  // Refs to detect outside clicks
+  const { doctors } = useContext(AppContext);
+  const navigate = useNavigate();
+
+  // Refs for outside click detection
   const dropdownButtonRef = useRef(null);
   const dropdownMenuRef = useRef(null);
 
@@ -16,6 +22,31 @@ const Searchbar = () => {
   const handleSelectRegion = (region) => {
     setSelectedRegion(region);
     setIsDropdownOpen(false);
+  };
+
+  // Handle search query update and filter doctors
+  const handleSearch = (event) => {
+    const query = event.target.value.toLowerCase();
+    setSearchQuery(query);
+
+    if (query.trim() === '') {
+      setFilteredDoctors([]);
+    } else {
+      const filtered = doctors.filter(
+        (doc) =>
+          doc.name.toLowerCase().includes(query) ||
+          doc.speciality.toLowerCase().includes(query) ||
+          doc.location.toLowerCase().includes(selectedRegion.toLowerCase())
+      );
+      setFilteredDoctors(filtered);
+    }
+  };
+
+  // Navigate to doctor's page when clicked
+  const handleDoctorClick = (doctorId) => {
+    navigate(`/appointment/${doctorId}`);
+    setSearchQuery('');
+    setFilteredDoctors([]);
   };
 
   // Close dropdown if clicking outside
@@ -30,19 +61,13 @@ const Searchbar = () => {
     }
   };
 
-  // Add event listener for outside clicks
   useEffect(() => {
     document.addEventListener('click', handleClickOutside);
-    return () => {
-      document.removeEventListener('click', handleClickOutside);
-    };
+    return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
   return (
-    // <div className= " w-full max-w-sm gap-4 my-2 text-gray-800  md:mx-auto ">
-    <div className=" w-full max-w-sm min-w-[200px] my-4 md:mx-auto">
-      
-    
+    <div className="w-full max-w-sm min-w-[200px] my-4 md:mx-auto relative">
       <div className="relative mt-2">
         <div className="absolute top-1 left-1 flex items-center">
           <button
@@ -59,11 +84,7 @@ const Searchbar = () => {
               stroke="currentColor"
               className="h-4 w-4 ml-1"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="m19.5 8.25-7.5 7.5-7.5-7.5"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
             </svg>
           </button>
           <div className="h-6 border-l border-slate-200 ml-1"></div>
@@ -73,34 +94,27 @@ const Searchbar = () => {
               className="min-w-[150px] absolute left-0 mt-10 w-full bg-white border border-slate-200 rounded-md shadow-lg z-10"
             >
               <ul>
-                <li
-                  className="px-4 py-2 text-slate-600 hover:bg-slate-50 text-sm cursor-pointer"
-                  onClick={() => handleSelectRegion('Bhopal')}
-                >
-                  Bhopal
-                </li>
-                <li
-                  className="px-4 py-2 text-slate-600 hover:bg-slate-50 text-sm cursor-pointer"
-                  onClick={() => handleSelectRegion('Vidisha')}
-                >
-                 Vidisha
-                </li>
-                <li
-                  className="px-4 py-2 text-slate-600 hover:bg-slate-50 text-sm cursor-pointer"
-                  onClick={() => handleSelectRegion('Indore')}
-                >
-                  Indore
-                </li>
+                {['Bhopal', 'Vidisha', 'Indore'].map((region) => (
+                  <li
+                    key={region}
+                    className="px-4 py-2 text-slate-600 hover:bg-slate-50 text-sm cursor-pointer"
+                    onClick={() => handleSelectRegion(region)}
+                  >
+                    {region}
+                  </li>
+                ))}
               </ul>
             </div>
           )}
         </div>
+
         <input
           type="text"
+          value={searchQuery}
+          onChange={handleSearch}
           className="w-full bg-transparent placeholder:text-slate-400 text-slate-700 text-sm border border-slate-200 rounded-md pr-12 pl-28 py-2 transition duration-300 ease focus:outline-none focus:border-slate-400 hover:border-slate-300 shadow-sm focus:shadow"
-          placeholder="Search doctors, clinics,hospitals,etc"
+          placeholder="Search doctors, clinics, hospitals, etc."
         />
-
 
         <button
           className="absolute right-1 top-1 rounded bg-primary p-1.5 border border-transparent text-center text-sm text-white transition-all shadow-sm hover:shadow focus:bg-slate-700 focus:shadow-none active:bg-slate-700 hover:bg-slate-700 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none"
@@ -120,9 +134,31 @@ const Searchbar = () => {
           </svg>
         </button>
       </div>
+
+      {filteredDoctors.length > 0 && (
+        <div className="absolute w-full mt-2 bg-white border border-gray-300 rounded-md shadow-md z-20">
+          <ul className="divide-y divide-gray-200">
+            {filteredDoctors.map((doctor) => (
+              <li
+                key={doctor._id}
+                onClick={() => handleDoctorClick(doctor._id)}
+                className="px-4 py-2 text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center gap-3"
+              >
+                <img src={doctor.image} alt={doctor.name} className="w-8 h-8 rounded-full" />
+                <div>
+                  <p className="text-sm font-medium">{doctor.name}</p>
+                  <p className="text-xs text-gray-500">{doctor.speciality}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 };
 
 export default Searchbar;
+
+
 
